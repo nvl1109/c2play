@@ -29,7 +29,7 @@ void OutPin::WorkThread()
 		// Scope the shared pointer
 		{
 			ElementSPTR owner = Owner().lock();
-			if (owner && owner->State() == MediaState::Play)
+			if (owner && owner->GetState() == MediaState::Play)
 			{
 				DoWork();
 			}
@@ -88,8 +88,8 @@ void OutPin::SendBuffer(BufferSPTR buffer)
 	if (pin)
 	{
 		auto owner = pin->Owner().lock();
-		if (owner && (owner->ExecutionState() == ExecutionStateEnum::Executing ||
-			owner->ExecutionState() == ExecutionStateEnum::Idle))
+		if (owner && (owner->GetExecutionState() == ExecutionStateEnum::Executing ||
+			owner->GetExecutionState() == ExecutionStateEnum::Idle))
 		{
 
 			pin->ReceiveBuffer(buffer);

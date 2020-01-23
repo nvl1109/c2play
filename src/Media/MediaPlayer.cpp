@@ -50,10 +50,11 @@ double MediaPlayer::Duration() const
 	}
 }
 
-MediaState MediaPlayer::State() const
+MediaState MediaPlayer::GetState() const
 {
 	return state;
 }
+
 void MediaPlayer::SetState(MediaState value)
 {
 	if (value != state)
@@ -95,7 +96,7 @@ bool MediaPlayer::IsEndOfStream()
 	bool audioIsIdle = true;
 	if (audioSink)
 	{
-		if (audioSink->State() != MediaState::Pause)
+		if (audioSink->GetState() != MediaState::Pause)
 		{
 			audioIsIdle = false;
 		}
@@ -105,13 +106,13 @@ bool MediaPlayer::IsEndOfStream()
 	bool videoIsIdle = true;
 	if (videoSink)
 	{
-		if (videoSink->State() != MediaState::Pause)
+		if (videoSink->GetState() != MediaState::Pause)
 		{
 			videoIsIdle = false;
 		}
 	}
 
-	if (State() != MediaState::Pause && audioIsIdle && videoIsIdle)
+	if (GetState() != MediaState::Pause && audioIsIdle && videoIsIdle)
 	{
 		result = true;
 	}
@@ -143,8 +144,8 @@ MediaPlayer::MediaPlayer(std::string url, std::string avOptions, CompositorSPTR 
 
 
 	// Connections
-	OutPinSPTR sourceVideoPin = std::static_pointer_cast<OutPin>(
-		source->Outputs()->Find(MediaCategoryEnum::Video, videoStream));
+	sourceVideoPin = std::static_pointer_cast<OutPin>(
+	source->GetOutputs()->Find(MediaCategoryEnum::Video, videoStream));
 	if (sourceVideoPin)
 	{
 		videoSink = std::make_shared<AmlVideoSinkElement>();
@@ -152,11 +153,11 @@ MediaPlayer::MediaPlayer(std::string url, std::string avOptions, CompositorSPTR 
 		videoSink->Execute();
 		videoSink->WaitForExecutionState(ExecutionStateEnum::Idle);
 
-		sourceVideoPin->Connect(videoSink->Inputs()->Item(0));
+		sourceVideoPin->Connect(videoSink->GetInputs()->Item(0));
 	}
 
-	OutPinSPTR sourceAudioPin = std::static_pointer_cast<OutPin>(
-		source->Outputs()->Find(MediaCategoryEnum::Audio, audioStream));
+	sourceAudioPin = std::static_pointer_cast<OutPin>(
+		source->GetOutputs()->Find(MediaCategoryEnum::Audio, audioStream));
 	if (sourceAudioPin)
 	{
 		audioCodec = std::make_shared<AudioCodecElement>();
@@ -169,13 +170,12 @@ MediaPlayer::MediaPlayer(std::string url, std::string avOptions, CompositorSPTR 
 		audioSink->Execute();
 		audioSink->WaitForExecutionState(ExecutionStateEnum::Idle);
 
-		sourceAudioPin->Connect(audioCodec->Inputs()->Item(0));
+		sourceAudioPin->Connect(audioCodec->GetInputs()->Item(0));
 
-		audioCodec->Outputs()->Item(0)->Connect(audioSink->Inputs()->Item(0));
+		audioCodec->GetOutputs()->Item(0)->Connect(audioSink->GetInputs()->Item(0));
 	}
 
-	//OutPinSPTR sourceSubtitlePin;
-	OutPinSPTR sourceSubtitlePin = source->Outputs()->Find(MediaCategoryEnum::Subtitle, subtitleStream);
+	sourceSubtitlePin = source->GetOutputs()->Find(MediaCategoryEnum::Subtitle, subtitleStream);
 	if (sourceSubtitlePin)
 	{
 		subtitleCodec = std::make_shared<SubtitleDecoderElement>();
@@ -183,7 +183,7 @@ MediaPlayer::MediaPlayer(std::string url, std::string avOptions, CompositorSPTR 
 		subtitleCodec->Execute();
 		subtitleCodec->WaitForExecutionState(ExecutionStateEnum::Idle);
 
-		sourceSubtitlePin->Connect(subtitleCodec->Inputs()->Item(0));
+		sourceSubtitlePin->Connect(subtitleCodec->GetInputs()->Item(0));
 
 
 		subtitleRender = std::make_shared<SubtitleRenderElement>(compositor);
@@ -191,7 +191,7 @@ MediaPlayer::MediaPlayer(std::string url, std::string avOptions, CompositorSPTR 
 		subtitleRender->Execute();
 		subtitleRender->WaitForExecutionState(ExecutionStateEnum::Idle);
 
-		subtitleCodec->Outputs()->Item(0)->Connect(subtitleRender->Inputs()->Item(0));
+		subtitleCodec->GetOutputs()->Item(0)->Connect(subtitleRender->GetInputs()->Item(0));
 
 		if (audioSink)
 		{
@@ -206,7 +206,7 @@ MediaPlayer::MediaPlayer(std::string url, std::string avOptions, CompositorSPTR 
 	if (audioSink && videoSink)
 	{
 		// Clock
-		audioSink->Outputs()->Item(0)->Connect(videoSink->Inputs()->Item(1));
+		audioSink->GetOutputs()->Item(0)->Connect(videoSink->GetInputs()->Item(1));
 	}
 }
 MediaPlayer::~MediaPlayer()
@@ -217,6 +217,7 @@ MediaPlayer::~MediaPlayer()
 		printf("MediaPlayer: terminating audioSink.\n");
 		audioSink->Terminate();
 		audioSink->WaitForExecutionState(ExecutionStateEnum::WaitingForExecute);
+		audioSink.reset();
 	}
 
 	if (audioCodec)
@@ -224,6 +225,7 @@ MediaPlayer::~MediaPlayer()
 		printf("MediaPlayer: terminating audioCodec.\n");
 		audioCodec->Terminate();
 		audioCodec->WaitForExecutionState(ExecutionStateEnum::WaitingForExecute);
+		audioCodec.reset();
 	}
 
 	if (subtitleCodec)
@@ -231,10 +233,12 @@ MediaPlayer::~MediaPlayer()
 		printf("MediaPlayer: terminating subtitleCodec.\n");
 		subtitleCodec->Terminate();
 		subtitleCodec->WaitForExecutionState(ExecutionStateEnum::WaitingForExecute);
+		subtitleCodec.reset();
 
 		printf("MediaPlayer: terminating subtitleRender.\n");
 		subtitleRender->Terminate();
 		subtitleRender->WaitForExecutionState(ExecutionStateEnum::WaitingForExecute);
+		subtitleRender.reset();
 	}
 
 	if (videoSink)
@@ -242,16 +246,14 @@ MediaPlayer::~MediaPlayer()
 		printf("MediaPlayer: terminating videoSink.\n");
 		videoSink->Terminate();
 		videoSink->WaitForExecutionState(ExecutionStateEnum::WaitingForExecute);
+		videoSink.reset();
 	}
 
 	printf("MediaPlayer: terminating source.\n");
 	source->Terminate();
 	source->WaitForExecutionState(ExecutionStateEnum::WaitingForExecute);
-
 	printf("MediaPlayer: destructed.\n");
 }
-
-
 
 void MediaPlayer::Seek(double timeStamp)
 {
@@ -281,10 +283,6 @@ void MediaPlayer::Seek(double timeStamp)
 		subtitleCodec->SetState(MediaState::Pause);
 		subtitleRender->SetState(MediaState::Pause);
 	}
-
-
-	/*source->Flush();*/
-
 
 	if (audioCodec)
 	{

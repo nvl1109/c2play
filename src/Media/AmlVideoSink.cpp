@@ -21,37 +21,10 @@
 
 void AmlVideoSinkElement::timer_Expired(void* sender, const EventArgs& args)
 {
-	//vdec_status vdecStatus = amlCodec.GetVdecStatus();
-	//printf("AmlVideoSinkElement: timer_Expired - width=%u, height=%u, fps=%u, error_count=%u, status=0x%x\n",
-	//	vdecStatus.width, vdecStatus.height, vdecStatus.fps, vdecStatus.error_count, vdecStatus.status);
-
-	//double pts = amlCodec.GetCurrentPts();
-	//printf("AmlVideoSinkElement: pts=%f, eosPts=%f\n", pts, eosPts);
-
-
 	timerMutex.Lock();
 
-	if (isEndOfStream && (State() != MediaState::Pause))
+	if (isEndOfStream)
 	{
-
-#if 1
-		double pts = amlCodec.GetCurrentPts();
-		//printf("AmlVideoSinkElement: timer_Expired - isEndOfStream=true, pts=%f, eosPts=%f\n", pts, eosPts);
-
-		// If the pts is the same as last time (clock tick = 1/4 s),
-		// then assume that playback is done.
-		if (pts == eosPts)
-		{
-			printf("AmlVideoSinkElement: timer_Expired (pausing) - isEndOfStream=true, pts=%f, eosPts=%f\n", pts, eosPts);
-			SetState(MediaState::Pause);
-			isEndOfStream = false;
-			eosPts = -1;
-		}
-		else
-		{
-			eosPts = pts;
-		}
-#else
 		buf_status bufferStatus = amlCodec.GetBufferStatus();
 		//int api = codec_get_vbuf_state(&codecContext, &bufferStatus);
 		//if (api == 0)
@@ -62,7 +35,7 @@ void AmlVideoSinkElement::timer_Expired(void* sender, const EventArgs& args)
 			// Testing has shown this value does not reach zero
 			if (bufferStatus.data_len < 512)
 			{
-				printf("AmlVideoSinkElement: timer_Expired - isEndOfStream=true, bufferStatus.data_len=%d (Pausing).\n", bufferStatus.data_len);
+				printf("AmlVideoSinkElement: timer_Expired - isEndOfStream=true (Pausing).\n");
 				SetState(MediaState::Pause);
 				isEndOfStream = false;
 
@@ -75,15 +48,9 @@ void AmlVideoSinkElement::timer_Expired(void* sender, const EventArgs& args)
 				//	vdecStatus.width, vdecStatus.height, vdecStatus.fps, vdecStatus.error_count, vdecStatus.status);
 			}
 		}
-#endif
 	}
 
 	timerMutex.Unlock();
-
-
-	// Wake up video thread to prevent stalls if there
-	// is no clock input.
-	Wake();
 
 	//printf("AmlVideoSinkElement: timer expired.\n");
 }
@@ -229,8 +196,8 @@ void AmlVideoSinkElement::ProcessBuffer(AVPacketBufferSPTR buffer)
 	unsigned char* nalHeader = (unsigned char*)pkt->data;
 
 #if 0
-	printf("Header (pkt.size=%x):\n", pkt->size);
-	for (int j = 0; j < 256; ++j)	//nalHeaderLength
+	printf("Header (pkt.size=%x):\n", pkt.size);
+	for (int j = 0; j < 16; ++j)	//nalHeaderLength
 	{
 		printf("%02x ", nalHeader[j]);
 	}
@@ -247,16 +214,9 @@ void AmlVideoSinkElement::ProcessBuffer(AVPacketBufferSPTR buffer)
 		printf("\n");
 
 		if (nalHeader[0] == 0 && nalHeader[1] == 0 &&
-			nalHeader[2] == 1)
-		{
-			isAnnexB = true;
-			isShortStartCode = true;
-		}
-		else if (nalHeader[0] == 0 && nalHeader[1] == 0 &&
 			nalHeader[2] == 0 && nalHeader[3] == 1)
 		{
 			isAnnexB = true;
-			isShortStartCode = false;
 		}
 
 		//double timeStamp = av_q2d(buffer->TimeBase()) * pkt->pts;
@@ -267,7 +227,6 @@ void AmlVideoSinkElement::ProcessBuffer(AVPacketBufferSPTR buffer)
 		isFirstVideoPacket = false;
 
 		printf("isAnnexB=%u\n", isAnnexB);
-		printf("isShortStartCode=%u\n", isShortStartCode);
 	}
 
 
@@ -285,133 +244,112 @@ void AmlVideoSinkElement::ProcessBuffer(AVPacketBufferSPTR buffer)
 
 	isExtraDataSent = false;
 
-
-	switch (videoFormat)
+	if (isAnnexB)
 	{
-		case VideoFormatEnum::Mpeg2:
+		SendCodecData(pts, pkt->data, pkt->size);
+		//amlCodec.SendData(pts, pkt->data, pkt->size);
+	}
+	else if (!isAnnexB &&
+		(videoFormat == VideoFormatEnum::Avc ||
+		 videoFormat == VideoFormatEnum::Hevc))
+	{
+		//unsigned char* nalHeader = (unsigned char*)pkt.data;
+
+		// Five least significant bits of first NAL unit byte signify nal_unit_type.
+		int nal_unit_type;
+		const int nalHeaderLength = 4;
+
+		while (nalHeader < (pkt->data + pkt->size))
 		{
-			SendCodecData(pts, pkt->data, pkt->size);
-			break;
-		}
-
-		case VideoFormatEnum::Mpeg4:
-		{
-			unsigned char* video_extra_data = &extraData[0];
-			int video_extra_data_size = extraData.size();
-
-			SendCodecData(0, video_extra_data, video_extra_data_size);
-
-
-			SendCodecData(pts, pkt->data, pkt->size);
-
-			break;
-		}
-
-		case VideoFormatEnum::Mpeg4V3:
-		{
-			//printf("Sending Divx3\n");
-			Divx3Header(videoPin->InfoAs()->Width, videoPin->InfoAs()->Height, pkt->size);
-			SendCodecData(pts, &videoExtraData[0], videoExtraData.size());
-			//amlCodec.SendData(pts, &videoExtraData[0], videoExtraData.size());
-
-			SendCodecData(0, pkt->data, pkt->size);
-			//amlCodec.SendData(0, pkt->data, pkt->size);
-			break;
-		}
-			
-		case VideoFormatEnum::Avc:
-		case VideoFormatEnum::Hevc:
-		{
-			if (!isAnnexB)
+			switch (videoFormat)
 			{
-				// Five least significant bits of first NAL unit byte signify nal_unit_type.
-				int nal_unit_type;
-				const int nalHeaderLength = 4;
-
-				while (nalHeader < (pkt->data + pkt->size))
+				case VideoFormatEnum::Avc:
+					//if (!isExtraDataSent)
 				{
-					switch (videoFormat)
+					// Copy AnnexB data if NAL unit type is 5
+					nal_unit_type = nalHeader[nalHeaderLength] & 0x1F;
+
+					if (!isExtraDataSent || nal_unit_type == 5)
 					{
-						case VideoFormatEnum::Avc:
-						{
-							// Copy AnnexB data if NAL unit type is 5
-							nal_unit_type = nalHeader[nalHeaderLength] & 0x1F;
+						ConvertH264ExtraDataToAnnexB();
 
-							if (!isExtraDataSent || nal_unit_type == 5)
-							{
-								ConvertH264ExtraDataToAnnexB();
-
-								SendCodecData(pts, &videoExtraData[0], videoExtraData.size());
-								//amlCodec.SendData(pts, &videoExtraData[0], videoExtraData.size());
-							}
-
-							isExtraDataSent = true;
-						}
-						break;
-
-						case VideoFormatEnum::Hevc:
-						{
-							nal_unit_type = (nalHeader[nalHeaderLength] >> 1) & 0x3f;
-
-							/* prepend extradata to IRAP frames */
-							if (!isExtraDataSent || (nal_unit_type >= 16 && nal_unit_type <= 23))
-							{
-								HevcExtraDataToAnnexB();
-
-								SendCodecData(0, &videoExtraData[0], videoExtraData.size());
-								//amlCodec.SendData(0, &videoExtraData[0], videoExtraData.size());
-							}
-
-							isExtraDataSent = true;
-						}
-						break;
-
-						default:
-							throw NotSupportedException("Unexpected video format.");
+						SendCodecData(pts, &videoExtraData[0], videoExtraData.size());
+						//amlCodec.SendData(pts, &videoExtraData[0], videoExtraData.size());
 					}
 
-
-					// Overwrite header NAL length with startcode '0x00000001' in *BigEndian*
-					int nalLength = nalHeader[0] << 24;
-					nalLength |= nalHeader[1] << 16;
-					nalLength |= nalHeader[2] << 8;
-					nalLength |= nalHeader[3];
-
-					if (nalLength < 0 || nalLength > pkt->size)
-					{
-						printf("Invalid NAL length=%d, pkt->size=%d\n", nalLength, pkt->size);
-						throw Exception();
-					}
-
-					nalHeader[0] = 0;
-					nalHeader[1] = 0;
-					nalHeader[2] = 0;
-					nalHeader[3] = 1;
-
-					nalHeader += nalLength + 4;
+					isExtraDataSent = true;
 				}
+				break;
+
+				case VideoFormatEnum::Hevc:
+					//if (!isExtraDataSent)
+				{
+					nal_unit_type = (nalHeader[nalHeaderLength] >> 1) & 0x3f;
+
+					/* prepend extradata to IRAP frames */
+					if (!isExtraDataSent || (nal_unit_type >= 16 && nal_unit_type <= 23))
+					{
+						HevcExtraDataToAnnexB();
+
+						SendCodecData(0, &videoExtraData[0], videoExtraData.size());
+						//amlCodec.SendData(0, &videoExtraData[0], videoExtraData.size());
+					}
+
+					isExtraDataSent = true;
+				}
+				break;
+
+				default:
+					throw NotSupportedException("Unexpected video format.");
 			}
 
-			if (!SendCodecData(pts, pkt->data, pkt->size))
+
+			// Overwrite header NAL length with startcode '0x00000001' in *BigEndian*
+			int nalLength = nalHeader[0] << 24;
+			nalLength |= nalHeader[1] << 16;
+			nalLength |= nalHeader[2] << 8;
+			nalLength |= nalHeader[3];
+
+			if (nalLength < 0 || nalLength > pkt->size)
 			{
-				// Resend extra data on codec reset
-				isExtraDataSent = false;
-
-				printf("AmlVideoSinkElement::ProcessBuffer - SendData Failed.\n");
+				printf("Invalid NAL length=%d, pkt->size=%d\n", nalLength, pkt->size);
+				throw Exception();
 			}
 
-			break;
+			nalHeader[0] = 0;
+			nalHeader[1] = 0;
+			nalHeader[2] = 0;
+			nalHeader[3] = 1;
+
+			nalHeader += nalLength + 4;
 		}
 
-		case VideoFormatEnum::VC1:
+		//SendCodecData(pts, pkt->data, pkt->size);
+		//if (!amlCodec.SendData(pts, pkt->data, pkt->size))
+		if (!SendCodecData(pts, pkt->data, pkt->size))
 		{
-			SendCodecData(pts, pkt->data, pkt->size);
+			// Resend extra data on codec reset
+			isExtraDataSent = false;
 
-			break;
+			printf("AmlVideoSinkElement::ProcessBuffer - SendData Failed.\n");
 		}
 
-		default:
-			throw NotSupportedException();
+		//isExtraDataSent = false;
+	}
+	else if (videoPin->InfoAs()->Format == VideoFormatEnum::Mpeg4V3)
+	{
+		//printf("Sending Divx3\n");
+		Divx3Header(videoPin->InfoAs()->Width, videoPin->InfoAs()->Height, pkt->size);
+		SendCodecData(pts, &videoExtraData[0], videoExtraData.size());
+		//amlCodec.SendData(pts, &videoExtraData[0], videoExtraData.size());
+
+		SendCodecData(0, pkt->data, pkt->size);
+		//amlCodec.SendData(0, pkt->data, pkt->size);
+	}
+	else
+	{
+		SendCodecData(pts, pkt->data, pkt->size);
+		//amlCodec.SendData(pts, pkt->data, pkt->size);
 	}
 
 
@@ -556,13 +494,12 @@ void AmlVideoSinkElement::DoWork()
 	BufferSPTR buffer;
 
 	//if (videoPin->TryPeekFilledBuffer(&buffer))
-	//if (State() == MediaState::Play)
+	if (GetState() == MediaState::Play)
 	{
 		//AVPacketBufferSPTR avPacketBuffer = std::static_pointer_cast<AVPacketBuffer>(buffer);
 
 		// Video
-		while (State() == MediaState::Play && 
-			   videoPin->TryGetFilledBuffer(&buffer))
+		if (videoPin->TryGetFilledBuffer(&buffer))
 		{
 			if (isFirstData)
 			{
@@ -612,7 +549,6 @@ void AmlVideoSinkElement::DoWork()
 					{
 						case MarkerEnum::EndOfStream:
 							isEndOfStream = true;
-							//eosPts = buffer->TimeStamp();
 							break;
 
 						case MarkerEnum::Discontinue:
@@ -632,7 +568,6 @@ void AmlVideoSinkElement::DoWork()
 					//printf("AmlVideoSink: Got a buffer.\n");
 					AVPacketBufferSPTR avPacketBuffer = std::static_pointer_cast<AVPacketBuffer>(buffer);
 					ProcessBuffer(avPacketBuffer);
-					//eosPts = buffer->TimeStamp();
 					break;
 				}
 
@@ -642,8 +577,6 @@ void AmlVideoSinkElement::DoWork()
 
 			videoPin->PushProcessedBuffer(buffer);
 			videoPin->ReturnProcessedBuffers();
-
-			//printf("AmlVideoSink: filledBufferCount=%d\n", (int)videoPin->FilledBufferCount());
 		}
 	}
 }
@@ -667,7 +600,7 @@ void AmlVideoSinkElement::ChangeState(MediaState oldState, MediaState newState)
 
 			//doPauseFlag = false;
 			//doResumeFlag = true;
-			//isEndOfStream = false;
+			isEndOfStream = false;
 			//timer.Start();
 
 			playPauseMutex.Unlock();
@@ -754,7 +687,6 @@ void AmlVideoSinkElement::Flush()
 		//codec_set_syncenable(&codecContext, 1);
 	}
 
-	isEndOfStream = false;
 
 	timer.Start();
 

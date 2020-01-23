@@ -314,12 +314,6 @@ void MediaSourceElement::SetupPins()
 							info->Format = AudioFormatEnum::Flac;
 						break;
 
-					case AV_CODEC_ID_PCM_S24LE:
-						printf("stream #%d - AUDIO/PCM_S24LE\n", i);
-						if (info)
-							info->Format = AudioFormatEnum::PcmS24LE;
-						break;
-
 					default:
 						printf("stream #%d - AUDIO/UNKNOWN (0x%x)\n", i, codec_id);
 						//throw NotSupportedException();
@@ -386,11 +380,6 @@ void MediaSourceElement::SetupPins()
 						printf("stream #%d - TODO SUBTITLE/SRT\n", i);
 						break;
 
-					case  AV_CODEC_ID_DVD_SUBTITLE:
-						printf("stream #%d - SUBTITLE/DVD_SUBTITLE\n", i);
-						info->Format = SubtitleFormatEnum::Dvd;
-						break;
-
 					default:
 						printf("stream #%d - SUBTITLE/UNKNOWN (0x%x)\n", i, codec_id);
 						break;
@@ -430,14 +419,14 @@ MediaSourceElement::MediaSourceElement(std::string url, std::string avOptions)
 	in case it is dispersed into the stream, but will increase latency. Must
 	be an integer not lesser than 32. It is 5000000 by default.
 	*/
-	av_dict_set(&options_dict, "probesize", "10000000", 0);
+	av_dict_set(&options_dict, "probesize", "5000000", 0);
 
 	/*
 	Specify how many microseconds are analyzed to probe the input. A higher
 	value will enable detecting more accurate information, but will increase
 	latency. It defaults to 5,000,000 microseconds = 5 seconds.
 	*/
-	av_dict_set(&options_dict, "analyzeduration", "10000000", 0);
+	av_dict_set(&options_dict, "analyzeduration", "5000000", 0);
 
 	if (av_dict_parse_string(&options_dict, avOptions.c_str(), ":", ",", 0))
 	{
@@ -560,10 +549,10 @@ void MediaSourceElement::DoWork()
 
 			// Send all Output Pins an EOS buffer
 			{
-				for (int i = 0; i < Outputs()->Count(); ++i)
+				for (int i = 0; i < GetOutputs()->Count(); ++i)
 				{
 					MarkerBufferSPTR eosBuffer = std::make_shared<MarkerBuffer>(shared_from_this(), MarkerEnum::EndOfStream);
-					Outputs()->Item(i)->SendBuffer(eosBuffer);
+					GetOutputs()->Item(i)->SendBuffer(eosBuffer);
 				}
 			}
 
@@ -603,7 +592,7 @@ void MediaSourceElement::DoWork()
 
 			//AddFilledBuffer(buffer);
 			OutPinSPTR pin = streamList[pkt->stream_index];
-			if (pin && pin->IsConnected())
+			if (pin)
 			{
 				pin->SendBuffer(freeBuffer);
 				//printf("MediaElement (%s) DoWork pin[%d] buffer sent.\n", Name().c_str(), pkt->stream_index);
@@ -626,10 +615,10 @@ void MediaSourceElement::DoWork()
 	//printf("MediaSourceElement: availableBuffers=%d\n", availableBuffers.Count());
 }
 
-
+// Todo solve precise seeking: https://stackoverflow.com/questions/20734814/ffmpeg-av-seek-frame-with-avseek-flag-any-causes-grey-screen/44468529#44468529
 void MediaSourceElement::Seek(double timeStamp)
 {
-	if (ExecutionState() != ExecutionStateEnum::Idle)
+	if (GetExecutionState() != ExecutionStateEnum::Idle)
 	{
 		throw InvalidOperationException();
 	}
@@ -637,7 +626,7 @@ void MediaSourceElement::Seek(double timeStamp)
 	int flags = AVFMT_SEEK_TO_PTS; //AVFMT_SEEK_TO_PTS; //AVSEEK_FLAG_ANY;
 	int64_t seekPts = (int64_t)(timeStamp * AV_TIME_BASE);
 
-	//if (seekPts < (long)lastPts)
+	if (seekPts < (long)lastPts)
 	{
 		flags |= AVSEEK_FLAG_BACKWARD;
 	}
@@ -646,15 +635,13 @@ void MediaSourceElement::Seek(double timeStamp)
 	if (ret < 0)
 	{
 		printf("av_seek_frame (%f) failed\n", timeStamp);
-		printf("WARNING: Seeking is unavailable.\n");
-		//throw AVException(ret);
+		throw AVException(ret);
 	}
 
 	// Send all Output Pins a Discontinue marker
-	for (int i = 0; i < Outputs()->Count(); ++i)
+	for (int i = 0; i < GetOutputs()->Count(); ++i)
 	{
 		MarkerBufferSPTR marker = std::make_shared<MarkerBuffer>(shared_from_this(), MarkerEnum::Discontinue);
-		Outputs()->Item(i)->SendBuffer(marker);
+		GetOutputs()->Item(i)->SendBuffer(marker);
 	}
 }
-

@@ -103,13 +103,6 @@ void AmlCodec::InternalOpen(VideoFormatEnum format, int width, int height, doubl
 	//am_sysinfo.param = (void*)(EXTERNAL_PTS | SYNC_OUTSIDE | USE_IDR_FRAMERATE | UCODE_IP_ONLY_PARAM);
 	am_sysinfo.param = (void*)(EXTERNAL_PTS);
 
-
-	// Rotation (clockwise)
-	//am_sysinfo.param = (void*)((unsigned long)(am_sysinfo.param) | 0x10000); //90
-	//am_sysinfo.param = (void*)((unsigned long)(am_sysinfo.param) | 0x20000); //180
-	//am_sysinfo.param = (void*)((unsigned long)(am_sysinfo.param) | 0x30000); //270
-
-
 	// Note: Testing has shown that the ALSA clock requires the +1
 	am_sysinfo.rate = 96000.0 / frameRate + 1;
 
@@ -269,20 +262,10 @@ void AmlCodec::InternalOpen(VideoFormatEnum format, int width, int height, doubl
 	}
 
 
-	// Restore settings that Kodi tramples
-	r = ioctl(cntl_handle, AMSTREAM_IOC_SET_VIDEO_DISABLE, (unsigned long)VIDEO_DISABLE_NONE);
-	if (r != 0)
-	{
-		throw Exception("AMSTREAM_IOC_SET_VIDEO_DISABLE VIDEO_DISABLE_NONE failed.");
-	}
-
-	uint32_t screenMode = (uint32_t)VIDEO_WIDEOPTION_NORMAL;
-	r = ioctl(cntl_handle, AMSTREAM_IOC_SET_SCREEN_MODE, &screenMode);
-	if (r != 0)
-	{
-		std::string err = "AMSTREAM_IOC_SET_SCREEN_MODE VIDEO_WIDEOPTION_NORMAL failed (" + std::to_string(r) + ").";
-		throw Exception(err.c_str());
-	}
+	//// Rotation
+	////codecContext.am_sysinfo.param = (void*)((unsigned long)(codecContext.am_sysinfo.param) | 0x10000); //90
+	////codecContext.am_sysinfo.param = (void*)((unsigned long)(codecContext.am_sysinfo.param) | 0x20000); //180
+	////codecContext.am_sysinfo.param = (void*)((unsigned long)(codecContext.am_sysinfo.param) | 0x30000); //270
 
 
 	// Debug info

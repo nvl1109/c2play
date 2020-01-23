@@ -71,10 +71,6 @@ void AudioCodecElement::SetupCodec()
 		soundCodec = avcodec_find_decoder(AV_CODEC_ID_FLAC);
 		break;
 
-	case AudioFormatEnum::PcmS24LE:
-		soundCodec = avcodec_find_decoder(AV_CODEC_ID_PCM_S24LE);
-		break;
-
 	default:
 		printf("Audio format %d is not supported.\n", (int)audioFormat);
 		throw NotSupportedException();
@@ -247,17 +243,9 @@ void AudioCodecElement::ProcessBuffer(AVPacketBufferSPTR buffer, AVFrameBufferSP
 						decoded_frame->channel_layout,
 						AV_CH_FRONT_LEFT);
 
-					if (leftChannelIndex < 0)
-						throw InvalidOperationException("av_get_channel_layout_channel_index (AV_CH_FRONT_LEFT) failed.");
-
-
 					int rightChannelIndex = av_get_channel_layout_channel_index(
 						decoded_frame->channel_layout,
 						AV_CH_FRONT_RIGHT);
-
-					if (rightChannelIndex < 0)
-						throw InvalidOperationException("av_get_channel_layout_channel_index (AV_CH_FRONT_RIGHT) failed.");
-
 
 					int centerChannelIndex = av_get_channel_layout_channel_index(
 						decoded_frame->channel_layout,
@@ -269,9 +257,6 @@ void AudioCodecElement::ProcessBuffer(AVPacketBufferSPTR buffer, AVFrameBufferSP
 
 					if (decoded_frame->channels > 2)
 					{
-						if (centerChannelIndex < 0)
-							throw InvalidOperationException("av_get_channel_layout_channel_index (AV_CH_FRONT_CENTER) failed.");
-
 						channels[2] = (void*)decoded_frame->data[centerChannelIndex];
 					}
 					//else
@@ -360,10 +345,10 @@ void AudioCodecElement::DoWork()
 				{
 				case MarkerEnum::EndOfStream:
 					// Send all Output Pins an EOS buffer					
-					for (int i = 0; i < Outputs()->Count(); ++i)
+					for (int i = 0; i < GetOutputs()->Count(); ++i)
 					{
 						MarkerBufferSPTR eosBuffer = std::make_shared<MarkerBuffer>(shared_from_this(), MarkerEnum::EndOfStream);
-						Outputs()->Item(i)->SendBuffer(eosBuffer);
+						GetOutputs()->Item(i)->SendBuffer(eosBuffer);
 					}
 
 					//SetExecutionState(ExecutionStateEnum::Idle);
