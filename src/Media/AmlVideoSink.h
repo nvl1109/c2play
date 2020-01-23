@@ -235,7 +235,6 @@ class AmlVideoSinkElement : public Element
 
 	bool isFirstVideoPacket = true;
 	bool isAnnexB = false;
-	bool isShortStartCode = false;
 	bool isExtraDataSent = false;
 	int64_t estimatedNextPts = 0;
 
@@ -250,7 +249,6 @@ class AmlVideoSinkElement : public Element
 
 	AmlVideoSinkClockInPinSPTR clockInPin;
 	bool isEndOfStream = false;
-	double eosPts = -1;
 
 	Timer timer;
 	EventListenerSPTR<EventArgs> timerExpiredListener;

@@ -314,12 +314,6 @@ void MediaSourceElement::SetupPins()
 							info->Format = AudioFormatEnum::Flac;
 						break;
 
-					case AV_CODEC_ID_PCM_S24LE:
-						printf("stream #%d - AUDIO/PCM_S24LE\n", i);
-						if (info)
-							info->Format = AudioFormatEnum::PcmS24LE;
-						break;
-
 					default:
 						printf("stream #%d - AUDIO/UNKNOWN (0x%x)\n", i, codec_id);
 						//throw NotSupportedException();
@@ -384,11 +378,6 @@ void MediaSourceElement::SetupPins()
 
 					case  CODEC_ID_SRT:
 						printf("stream #%d - TODO SUBTITLE/SRT\n", i);
-						break;
-
-					case  AV_CODEC_ID_DVD_SUBTITLE:
-						printf("stream #%d - SUBTITLE/DVD_SUBTITLE\n", i);
-						info->Format = SubtitleFormatEnum::Dvd;
 						break;
 
 					default:
@@ -603,7 +592,7 @@ void MediaSourceElement::DoWork()
 
 			//AddFilledBuffer(buffer);
 			OutPinSPTR pin = streamList[pkt->stream_index];
-			if (pin && pin->IsConnected())
+			if (pin)
 			{
 				pin->SendBuffer(freeBuffer);
 				//printf("MediaElement (%s) DoWork pin[%d] buffer sent.\n", Name().c_str(), pkt->stream_index);
@@ -646,8 +635,7 @@ void MediaSourceElement::Seek(double timeStamp)
 	if (ret < 0)
 	{
 		printf("av_seek_frame (%f) failed\n", timeStamp);
-		printf("WARNING: Seeking is unavailable.\n");
-		//throw AVException(ret);
+		throw AVException(ret);
 	}
 
 	// Send all Output Pins a Discontinue marker

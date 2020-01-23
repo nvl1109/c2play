@@ -20,8 +20,6 @@
 
 void AlsaAudioSinkElement::SetupAlsa(int frameSize)
 {
-	const int MIN_FRAME_SIZE = 512;
-
 	if (sampleRate == 0)
 	{
 		throw ArgumentException();
@@ -38,12 +36,6 @@ void AlsaAudioSinkElement::SetupAlsa(int frameSize)
 	printf("SetupAlsa: frameSize=%d\n", frameSize);
 
 	FRAME_SIZE = frameSize;
-	if (FRAME_SIZE < MIN_FRAME_SIZE)
-	{
-		FRAME_SIZE = MIN_FRAME_SIZE;
-		printf("SetupAlsa: frameSize too small. Using default value (%d)\n", FRAME_SIZE);
-	}
-
 	snd_pcm_hw_params_t *hw_params;
 	snd_pcm_sw_params_t *sw_params;
 	period_size = FRAME_SIZE * alsa_channels * sizeof(short);
@@ -93,8 +85,6 @@ void AlsaAudioSinkElement::ProcessBuffer(PcmDataBufferSPTR pcmBuffer)
 	{
 		SetupAlsa(pcmData->Samples);
 		isFirstBuffer = false;
-
-		printf("AlsaAudioSinkElement::ProcessBuffer - Rate=%d, Channels=%d, Format=%d.\n", sampleRate, pcmData->Channels, (int)pcmData->Format);
 	}
 
 
@@ -258,7 +248,7 @@ void AlsaAudioSinkElement::ProcessBuffer(PcmDataBufferSPTR pcmBuffer)
 		for (int i = 0; i < pcmData->Samples; ++i)
 		{
 			int left = source[srcIndex++];
-			int right = source[srcIndex++];
+			int right = source[srcIndex];
 
 			srcIndex += (pcmData->Channels - 2);
 

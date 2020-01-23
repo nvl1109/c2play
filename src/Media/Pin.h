@@ -69,8 +69,7 @@ enum class AudioFormatEnum
 	Opus,
 	Vorbis,
 	PcmDvd,
-	Flac,
-	PcmS24LE
+	Flac
 };
 
 enum class SubtitleFormatEnum
@@ -80,8 +79,7 @@ enum class SubtitleFormatEnum
 	SubRip,
 	Pgs, //Presentation Graphic Stream
 	Dvb,
-	DvbTeletext,
-	Dvd
+	DvbTeletext
 };
 
 enum class PictureFormatEnum
