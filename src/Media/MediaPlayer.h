@@ -45,33 +45,26 @@ class MediaPlayer
 	//EGLContext context = nullptr;
 	CompositorSPTR compositor;
 
+	OutPinSPTR sourceVideoPin;
+	OutPinSPTR sourceAudioPin;
+	OutPinSPTR sourceSubtitlePin;
+	
+
 public:
 
 	double Position() const;
 	
 	double Duration() const;
 
-	MediaState State() const;
+	MediaState GetState() const;
 	void SetState(MediaState value);
 
 	bool IsEndOfStream();
 
 	const ChapterListSPTR Chapters() const;
 
-	//void SetEgl(EGLDisplay eglDisplay, EGLSurface surface)
-	//{
-	//	this->eglDisplay = eglDisplay;
-	//	this->surface = surface;
-
-	//	subtitleRender = std::make_shared<SubtitleRenderElement>(eglDispaly, surface);
-	//}
-
-
-
 	MediaPlayer(std::string url, std::string avOptions, CompositorSPTR compositor, int videoStream, int audioStream, int subtitleStream);
 	~MediaPlayer();
-
-
 
 	void Seek(double timeStamp);
 };

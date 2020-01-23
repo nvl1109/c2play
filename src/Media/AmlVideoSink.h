@@ -96,7 +96,7 @@ protected:
 		if (TryGetFilledBuffer(&buffer))
 		{
 			ElementSPTR owner = Owner().lock();
-			if (owner && owner->State() == MediaState::Play)
+			if (owner && owner->GetState() == MediaState::Play)
 			{
 				ProcessClockBuffer(buffer);
 			}

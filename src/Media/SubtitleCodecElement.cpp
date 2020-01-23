@@ -611,10 +611,10 @@ void SubtitleDecoderElement::DoWork()
 					{
 						case MarkerEnum::EndOfStream:
 							// Send all Output Pins an EOS buffer					
-							for (int i = 0; i < Outputs()->Count(); ++i)
+							for (int i = 0; i < GetOutputs()->Count(); ++i)
 							{
 								MarkerBufferSPTR eosBuffer = std::make_shared<MarkerBuffer>(shared_from_this(), MarkerEnum::EndOfStream);
-								Outputs()->Item(i)->SendBuffer(eosBuffer);
+								GetOutputs()->Item(i)->SendBuffer(eosBuffer);
 							}
 
 							//SetExecutionState(ExecutionStateEnum::Idle);
@@ -695,7 +695,7 @@ void SubtitleDecoderElement::Flush()
 
 void SubtitleRenderElement::timer_Expired(void* sender, const EventArgs& args)
 {
-	if (State() == MediaState::Play)
+	if (GetState() == MediaState::Play)
 	{
 		entriesMutex.Lock();
 		
@@ -930,10 +930,10 @@ void SubtitleRenderElement::DoWork()
 				{
 				case MarkerEnum::EndOfStream:
 					// Send all Output Pins an EOS buffer					
-					for (int i = 0; i < Outputs()->Count(); ++i)
+					for (int i = 0; i < GetOutputs()->Count(); ++i)
 					{
 						MarkerBufferSPTR eosBuffer = std::make_shared<MarkerBuffer>(shared_from_this(), MarkerEnum::EndOfStream);
-						Outputs()->Item(i)->SendBuffer(eosBuffer);
+						GetOutputs()->Item(i)->SendBuffer(eosBuffer);
 					}
 
 					//SetExecutionState(ExecutionStateEnum::Idle);

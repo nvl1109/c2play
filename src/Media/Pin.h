@@ -224,6 +224,7 @@ public:
 	{
 		return name;
 	}
+	
 	void SetName(std::string value)
 	{
 		name = value;

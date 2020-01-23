@@ -494,7 +494,7 @@ void AmlVideoSinkElement::DoWork()
 	BufferSPTR buffer;
 
 	//if (videoPin->TryPeekFilledBuffer(&buffer))
-	if (State() == MediaState::Play)
+	if (GetState() == MediaState::Play)
 	{
 		//AVPacketBufferSPTR avPacketBuffer = std::static_pointer_cast<AVPacketBuffer>(buffer);
 

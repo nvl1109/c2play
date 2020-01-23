@@ -64,6 +64,8 @@ enum class ExecutionStateEnum
 	Terminating
 };
 
+typedef std::shared_ptr<Element> ElementSPTR;
+typedef std::weak_ptr<Element> ElementWPTR;
 
 class Element : public std::enable_shared_from_this<Element>
 {
@@ -72,7 +74,6 @@ class Element : public std::enable_shared_from_this<Element>
 	InPinCollection inputs;
 	OutPinCollection outputs;
 	ExecutionStateEnum executionState = ExecutionStateEnum::WaitingForExecute;
-	//ExecutionStateEnum desiredExecutionState = ExecutionStateEnum::WaitingForExecute;
 
 	pthread_cond_t waitCondition = PTHREAD_COND_INITIALIZER;
 	pthread_mutex_t waitMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -86,12 +87,7 @@ class Element : public std::enable_shared_from_this<Element>
 	bool logEnabled = false;
 	bool isRunning = false;
 
-
-
-
-
 	void SetExecutionState(ExecutionStateEnum newState);
-
 
 protected:
 
@@ -100,46 +96,33 @@ protected:
 		return isRunning;
 	}
 
-
-
 	Element();
 
-
-	
 	virtual void Initialize();
 	virtual void DoWork();
-	virtual void Idling();
-	virtual void Idled();
 	virtual void Terminating();
 
-
-	void State_Executing();
+	void ExecutingRunLoop();
 	void InternalWorkThread();
 	void AddInputPin(InPinSPTR pin);
 	void ClearInputPins();
 	void AddOutputPin(OutPinSPTR pin);
 	void ClearOutputPins();
 
-
-
 public:
 
-	InPinCollection* Inputs();
-	OutPinCollection* Outputs();
-	ExecutionStateEnum ExecutionState() const;
-	bool IsExecuting() const;
-	std::string Name() const;
+	InPinCollection* GetInputs();
+	OutPinCollection* GetOutputs();
+	ExecutionStateEnum GetExecutionState();
+	bool IsExecuting();
+	std::string GetName() const;
 	void SetName(std::string name);
-	bool LogEnabled() const;
+	bool GetLogEnabled() const;
 	void SetLogEnabled(bool value);
-	virtual MediaState State() const;
+	virtual MediaState GetState() const;
 	virtual void SetState(MediaState value);
 
-
-
 	virtual ~Element();
-
-
 
 	virtual void Execute();
 	virtual void Wake();
@@ -151,7 +134,3 @@ public:
 	// DEBUG
 	void Log(const char* message, ...);
 };
-
-
-typedef std::shared_ptr<Element> ElementSPTR;
-typedef std::weak_ptr<Element> ElementWPTR;
