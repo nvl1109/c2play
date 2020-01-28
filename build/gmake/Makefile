@@ -24,7 +24,7 @@ ifeq ($(config),debug)
   TARGETDIR  = ../..
   TARGET     = $(TARGETDIR)/c2play
   DEFINES   += -DDEBUG
-  INCLUDES  += -I../../src/Media -I../../src/UI
+  INCLUDES  += -I../../src/Media -I../../src/UI -I../../src/gpio
   CPPFLAGS  += -MMD -MP $(DEFINES) $(INCLUDES)
   CFLAGS    += $(CPPFLAGS) $(ARCH) -g -std=c++11
   CXXFLAGS  += $(CFLAGS) 
@@ -46,7 +46,7 @@ ifeq ($(config),release)
   TARGETDIR  = ../..
   TARGET     = $(TARGETDIR)/c2play
   DEFINES   += -D
-  INCLUDES  += -I../../src/Media -I../../src/UI
+  INCLUDES  += -I../../src/Media -I../../src/UI -I../../src/gpio
   CPPFLAGS  += -MMD -MP $(DEFINES) $(INCLUDES)
   CFLAGS    += $(CPPFLAGS) $(ARCH) -O2 -std=c++11
   CXXFLAGS  += $(CFLAGS) 

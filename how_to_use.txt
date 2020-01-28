@@ -1,0 +1,82 @@
+C2PLAY for Digital Video Signage
+
+Compared to a professional digital video signage solution here are the differences:
+- in loop play the seeking time (restarting the video) is aprox. 500msec
+- during the restarting process there is blank screen
+- requires >= 50msec falling edge on GPIO pin to detect GPIO signal 
+- terminating a video and starting a new one takes minimum 1200msec
+- during video switching there is blank screen
+- the playing is robust, stable and there is no memory leaking
+WARNING: You can use Odroid C2 with c2play as digital video signage solution for your own responsibility!
+
+Notes:
+- the c2play must be started with root rights becase of the GPIO handling
+- the normal and error outputs are redirected to /dev/null to keep black screen between videos (see SILENT variable below)
+- You could prepare the Odroid C2 environment as a professional looking Video Signage device with the following not detailed steps:
+	- Install Ubuntu 16.04 minimal image
+	- update and upgrade
+	- download and build c2play-x11 -j4 from here: https://github.com/belaszalontai/c2play/tree/xenial-signage
+	- install xorg (sudo apt install xorg)
+	- Other necessary todoes not detailed here:
+		- redirects boot logs from the terminal screen to the serial port (silent boot)
+		- solve autologin
+		- sudo needs no password to grant root rights (sudo without entering password)
+		- delete all unnecessar cron jobs which possibly could slowing down the Linux, except the log rotate jobs
+		- disable all power saving stuff to avoid conflicts
+		- disable command line prompt
+- make autostart a script called start.sh
+- start.sh contains only the following line: sudo startx -- -nocursor > /dev/ttyS0 2>&1
+- the .xinitrc must contain the video playing scheduler script. Exmples here:
+
+.xinitrc example #1
+-------------------
+### playing videos cycle one after another
+
+### define video files
+readonly VIDEO1='/home/odroid/video/a.mkv'
+readonly VIDEO2='/home/odroid/video/b.mkv'
+readonly VIDEO3='/home/odroid/video/c.mkv'
+
+readonly C2PLAY=/home/odroid/c2play/c2play-x11
+readonly SILENT='> /dev/null 2>&1'
+
+### runloop
+while :
+do
+	sudo $C2PLAY $VIDEO1 $SILENT		# plays video1
+	sudo $C2PLAY $VIDEO2 $SILENT		# then plays video2
+	sudo $C2PLAY $VIDEO3 $SILENT		# then plays video3
+done									# restart the sequence
+
+
+.xinitrc example #2
+-------------------
+### playing videos triggered by GPIO
+
+### define video files
+readonly VIDEO1='/home/odroid/video/a.mkv'
+readonly VIDEO2='/home/odroid/video/b.mkv'
+readonly VIDEO3='/home/odroid/video/c.mkv'
+
+readonly C2PLAY=/home/odroid/c2play/c2play-x11
+readonly SILENT='> /dev/null 2>&1'
+readonly GPIO0=1
+readonly GPIO1=2
+readonly GPIO2=3
+readonly GPIO3=4
+
+### runloop
+while :
+do
+	sudo $C2PLAY --loop $VIDEO1 $SILENT		# plays video1 in a loop until GPIO is triggered
+	gpio=$?
+	
+	case $gpio in
+		$GPIO0)
+			sudo $C2PLAY $VIDEO2 $SILENT		# on GPIO0 plays video2 until end
+		;;
+		$GPIO1)
+			sudo $C2PLAY $VIDEO3 $SILENT		# on GPIO1 plays video3 until end
+		;;
+	esac
+done											# restart the sequence

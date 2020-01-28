@@ -24,7 +24,7 @@ ifeq ($(config),debug)
   TARGETDIR  = ../..
   TARGET     = $(TARGETDIR)/c2play
   DEFINES   += -DDEBUG
-  INCLUDES  += -I../../src/Media -I../../src/UI -I../../src/UI/Fbdev
+  INCLUDES  += -I../../src/Media -I../../src/UI -I../../src/UI/Fbdev -I../../src/gpio
   CPPFLAGS  += -MMD -MP $(DEFINES) $(INCLUDES)
   CFLAGS    += $(CPPFLAGS) $(ARCH) -g -std=c++11
   CXXFLAGS  += $(CFLAGS) 
@@ -46,7 +46,7 @@ ifeq ($(config),release)
   TARGETDIR  = ../..
   TARGET     = $(TARGETDIR)/c2play
   DEFINES   += -D
-  INCLUDES  += -I../../src/Media -I../../src/UI -I../../src/UI/Fbdev
+  INCLUDES  += -I../../src/Media -I../../src/UI -I../../src/UI/Fbdev -I../../src/gpio
   CPPFLAGS  += -MMD -MP $(DEFINES) $(INCLUDES)
   CFLAGS    += $(CPPFLAGS) $(ARCH) -O2 -std=c++11
   CXXFLAGS  += $(CFLAGS) 
@@ -99,6 +99,7 @@ OBJECTS := \
 	$(OBJDIR)/Egl.o \
 	$(OBJDIR)/Texture2D.o \
 	$(OBJDIR)/FbdevAmlWindow.o \
+	$(OBJDIR)/gpioc2.o \
 
 RESOURCES := \
 
@@ -264,5 +265,8 @@ $(OBJDIR)/Texture2D.o: ../../src/UI/Texture2D.cpp
 $(OBJDIR)/FbdevAmlWindow.o: ../../src/UI/Fbdev/FbdevAmlWindow.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(CXXFLAGS) -o "$@" -c "$<"
-
+$(OBJDIR)/gpioc2.o: ../../src/gpio/gpioc2.cpp
+	@echo $(notdir $<)
+	$(SILENT) $(CXX) $(CXXFLAGS) -o "$@" -c "$<"
+	
 -include $(OBJECTS:%.o=%.d)

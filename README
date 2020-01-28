@@ -1,3 +1,11 @@
+C2PLAY Digital Video Signage
+- no inputs
+- no OSD
+- GPIO driven playing 
+- only GPIO0,1,2,3 is handled
+for detailed usage see how_to_use.txt!
+
+
 Install dependencies:
 	sudo apt install libasound2-dev libavformat-dev libass-dev
 
@@ -5,15 +13,15 @@ Compile:
 	make c2play -j4
 or
 	make c2play-x11 -j4
-or
-	make -j4
+
 
 Command line options:
 	--time hh:mm:ss.ss	Start playback at specified time.
-	--chapter n		Start playback at chapter n.
-	--video n		Index of video stream to play.
-	--audio	n		Index of audio stream to play.
+	--chapter n			Start playback at chapter n.
+	--video n			Index of video stream to play.
+	--audio	n			Index of audio stream to play.
 	--subtitle n		Index of subtitle stream to play.
+	--loop				Loop continuously.
 
 Note: video, audio, and subtitle are index values.  The first stream of a type
 is index 0 and increments for each stream of the same type present.  This is

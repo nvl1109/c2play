@@ -24,7 +24,7 @@ ifeq ($(config),debug)
   TARGETDIR  = ../..
   TARGET     = $(TARGETDIR)/c2play-x11
   DEFINES   += -DX11 -DDEBUG
-  INCLUDES  += -I../../src/Media -I../../src/UI -I../../src/UI/X11
+  INCLUDES  += -I../../src/Media -I../../src/UI -I../../src/UI/X11 -I../../src/gpio
   CPPFLAGS  += -MMD -MP $(DEFINES) $(INCLUDES)
   CFLAGS    += $(CPPFLAGS) $(ARCH) -g -std=c++11 -Wall
   CXXFLAGS  += $(CFLAGS) 
@@ -46,7 +46,7 @@ ifeq ($(config),release)
   TARGETDIR  = ../..
   TARGET     = $(TARGETDIR)/c2play-x11
   DEFINES   += -DX11 -D
-  INCLUDES  += -I../../src/Media -I../../src/UI -I../../src/UI/X11
+  INCLUDES  += -I../../src/Media -I../../src/UI -I../../src/UI/X11 -I../../src/gpio
   CPPFLAGS  += -MMD -MP $(DEFINES) $(INCLUDES)
   CFLAGS    += $(CPPFLAGS) $(ARCH) -O2 -std=c++11 -Wall
   CXXFLAGS  += $(CFLAGS) 
@@ -99,6 +99,7 @@ OBJECTS := \
 	$(OBJDIR)/Egl.o \
 	$(OBJDIR)/Texture2D.o \
 	$(OBJDIR)/X11Window.o \
+	$(OBJDIR)/gpioc2.o \
 
 RESOURCES := \
 
@@ -262,6 +263,9 @@ $(OBJDIR)/Texture2D.o: ../../src/UI/Texture2D.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 $(OBJDIR)/X11Window.o: ../../src/UI/X11/X11Window.cpp
+	@echo $(notdir $<)
+	$(SILENT) $(CXX) $(CXXFLAGS) -o "$@" -c "$<"
+$(OBJDIR)/gpioc2.o: ../../src/gpio/gpioc2.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 

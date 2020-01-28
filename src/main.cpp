@@ -35,7 +35,7 @@ extern "C"
 #include <libavcodec/avcodec.h>
 }
 
-#include "InputDevice.h"
+//#include "InputDevice.h"
 #include "MediaPlayer.h"
 
 #ifdef X11
@@ -47,30 +47,18 @@ extern "C"
 #include <dirent.h>
 #include <sys/stat.h>
 #include <string>
-#include <linux/input.h>
-#include <linux/uinput.h>
+//#include <linux/input.h>
+//#include <linux/uinput.h>
 
 #include <linux/kd.h>
 #include <linux/fb.h>
 
-#include "Osd.h"
+//#include "Osd.h"
 #include "Compositor.h"
 
+#include "gpio/gpioc2.h"
 
-bool isRunning = true;
-
-std::vector<InputDevicePtr> inputDevices;
-std::vector<std::string> devices;
-
-
-/*
-# Disable alpha layer (hide video)
-echo "d01068b4 0x7fc0" | sudo tee /sys/kernel/debug/aml_reg/paddr
-
-# Enable alpha layer (show video)
-echo "d01068b4 0x3fc0" | sudo tee /sys/kernel/debug/aml_reg/paddr
-*/
-
+volatile bool isRunning = true;
 
 // Signal handler for Ctrl-C
 void SignalHandler(int s)
@@ -78,151 +66,23 @@ void SignalHandler(int s)
 	isRunning = false;
 }
 
-
-void GetDevices()
-{
-	inputDevices.clear();
-
-
-	DIR *dpdf;
-	struct dirent *epdf;
-
-	std::string path = "/dev/input/";
-
-	dpdf = opendir(path.c_str());
-	if (dpdf != NULL)
-	{
-		while ((epdf = readdir(dpdf)))
-		{
-			//printf("Filename: %s\n", epdf->d_name);
-			// std::cout << epdf->d_name << std::endl;
-			
-			std::string entryName = path + std::string(epdf->d_name);
-			//printf("Filename: %s\n", entryName.c_str());
-
-			struct stat sb;
-			if (stat(entryName.c_str(), &sb) == -1) {
-				perror("stat");
-				exit(EXIT_FAILURE);
-			}
-
-			//printf("File type:");
-
-			//switch (sb.st_mode & S_IFMT) {
-			//case S_IFBLK:  printf("block device\n");            break;
-			//case S_IFCHR:  printf("character device\n");        break;
-			//case S_IFDIR:  printf("directory\n");               break;
-			//case S_IFIFO:  printf("FIFO/pipe\n");               break;
-			//case S_IFLNK:  printf("symlink\n");                 break;
-			//case S_IFREG:  printf("regular file\n");            break;
-			//case S_IFSOCK: printf("socket\n");                  break;
-			//default:       printf("unknown?\n");                break;
-			//}
-
-			//printf("\n");
-
-			if (sb.st_mode & S_IFCHR)
-			{
-				devices.push_back(entryName);
-				printf("added device: %s\n", entryName.c_str());
-			}
-		}
-
-		for(auto device : devices)
-		{
-			printf("Device: %s\n", device.c_str());
-
-			int fd = open(device.c_str(), O_RDONLY);
-			if (fd < 0)
-			{
-				printf("device open failed. (%s)\n", device.c_str());
-			}
-			else
-			{
-				//input_id id;
-				//int io = ioctl(fd, EVIOCGID, &id);
-				//if (io < 0)
-				//{
-				//	printf("EVIOCGID failed.\n");
-				//}
-				//else
-				//{
-				//	printf("\tbustype=%d, vendor=%d, product=%d, version=%d\n",
-				//		id.bustype, id.vendor, id.product, id.version);
-				//}
-
-				//char name[255];
-				//io = ioctl(fd, EVIOCGNAME(255), name);
-				//if (io < 0)
-				//{
-				//	printf("EVIOCGNAME failed.\n");
-				//}
-				//else
-				//{
-				//	printf("\tname=%s\n", name);
-				//}
-
-
-				int bitsRequired = EV_MAX;
-				int bytesRequired = (bitsRequired + 1) / 8;
-
-				unsigned char buffer[bytesRequired];
-				int io = ioctl(fd, EVIOCGBIT(0, bytesRequired), buffer);
-				if (io < 0)
-				{
-					printf("EVIOCGBIT failed.\n");
-				}
-				else
-				{
-					unsigned int events = *((unsigned int*)buffer);
-
-					if (events & EV_KEY)
-					{
-						InputDevicePtr inputDevice = std::make_shared<InputDevice>(device);
-						inputDevices.push_back(inputDevice);
-					}
-				}
-
-				close(fd);
-			}
-		}
-	}
-}
-
-void DisplayHelp()
-{
-		printf("Usage: c2play [OPTIONS] [FILE|URL]\n");
-		printf("Play video using hardware acceleration\n\n");
-
-		printf("      --help\t\tDisplay this help information\n");
-		printf("  -t, --time hh:mm:ss\tStart playback at specified time\n");
-		printf("  -c, --chapter n\tStart playback at specified chapter\n");
-		printf("      --video n\t\tIndex of video stream to play\n");
-		printf("      --audio n\t\tIndex of audio stream to play\n");
-		printf("      --subtitle n\tIndex of subtitle stream to play\n");
-		printf("      --avdict 'opts'\tOptions to pass to libav\n");
-}
-
 struct option longopts[] = {
-	{ "help",			no_argument,        NULL,          'h' },
 	{ "time",			required_argument,  NULL,          't' },
 	{ "chapter",		required_argument,  NULL,          'c' },
 	{ "video",			required_argument,  NULL,          'v' },
 	{ "audio",			required_argument,  NULL,          'a' },
 	{ "subtitle",		required_argument,  NULL,          's' },
 	{ "avdict",			required_argument,  NULL,          'A' },
+	{ "loop",			no_argument,        NULL,          'l' },
 	{ 0, 0, 0, 0 }
 };
 
-
 int main(int argc, char** argv)
 {
-	if (argc < 2)
+	if (argc < 1)
 	{
-		DisplayHelp();
-		exit(EXIT_SUCCESS);
+		exit(0);
 	}
-
 
 	// Trap signal to clean up
 	signal(SIGINT, SignalHandler);
@@ -236,15 +96,12 @@ int main(int argc, char** argv)
 	int optionAudioIndex = 0;
 	int optionSubtitleIndex = -1;	//disabled by default
 	std::string avOptions;
+	bool optionLoop = false;
 
 	while ((c = getopt_long(argc, argv, "t:c:", longopts, NULL)) != -1)
 	{
 		switch (c)
 		{
-			case 'h':
-				DisplayHelp();
-				exit(EXIT_SUCCESS);
-
 			case 'A':
 				avOptions = optarg;
 				break;
@@ -295,60 +152,42 @@ int main(int argc, char** argv)
 				printf("optionSubtitleIndex=%d\n", optionSubtitleIndex);
 				break;
 
-			default:
-				DisplayHelp();
-				exit(EXIT_FAILURE);
-
-				//printf("?? getopt returned character code 0%o ??\n", c);
-				//break;
+			case 'l':
+				optionLoop = true;
+				printf("optionLoop=true\n");
+				break;
 		}
 	}
-
 
 	const char* url = nullptr;
 	if (optind < argc)
 	{
-		//printf("non-option ARGV-elements: ");
 		while (optind < argc)
 		{
 			url = argv[optind++];
-			//printf("%s\n", url);
 			break;
 		}
 	}
 
-
 	if (url == nullptr)
 	{
-		DisplayHelp();
-		exit(EXIT_FAILURE);
+		exit(0);
 	}
 
+	// Initialize GPIO input(s)
+	unsigned int gpioCounter = 0;
+	GPIOC2 *gpio[4];
+	gpio[0] = new GPIOC2(11, INPUT); //GPIO0 (pin11)
+	gpio[1] = new GPIOC2(12, INPUT); //GPIO1 (pin12)
+	gpio[2] = new GPIOC2(13, INPUT); //GPIO2 (pin13)
+	gpio[3] = new GPIOC2(15, INPUT); //GPIO3 (pin15)
 
-#if 1
-	GetDevices();
-
-	for (InputDevicePtr dev : inputDevices)
-	{
-		printf("Using input device: %s\n", dev->Name().c_str());
-	}
-
-#endif
-
-	
 	// Initialize libav
 	av_log_set_level(AV_LOG_VERBOSE);
 	av_register_all();
 	avformat_network_init();
 
-
-
-
-
-	
 	WindowSPTR window;
-	OsdSPTR osd;
-	bool isFbdev = false;
 
 #ifdef X11
 
@@ -357,7 +196,6 @@ int main(int argc, char** argv)
 #else
 
 	window = std::make_shared<FbdevAmlWindow>();
-	isFbdev = true;
 
 #endif
 	 
@@ -368,8 +206,6 @@ int main(int argc, char** argv)
 		window->Context());
 
 	CompositorSPTR compositor = std::make_shared<Compositor>(renderContext, 1920, 1080);
-	osd = std::make_shared<Osd>(compositor);
-
 
 	MediaPlayerSPTR mediaPlayer = std::make_shared<MediaPlayer>(url,
 		avOptions,
@@ -377,7 +213,6 @@ int main(int argc, char** argv)
 		optionVideoIndex,
 		optionAudioIndex,
 		optionSubtitleIndex);
-
 
 	if (optionChapter > -1)
 	{
@@ -388,154 +223,47 @@ int main(int argc, char** argv)
 		}
 	}
 
-
 	mediaPlayer->Seek(optionStartPosition);
 	mediaPlayer->SetState(MediaState::Play);
 
-	
 	isRunning = true;
-	bool isPaused = false;
+
+	unsigned int exitCode = 0;
 
 	while (isRunning)
 	{
 
 		isRunning = window->ProcessMessages();
 
+		// Handling GPIO inputs
+		if (gpio[gpioCounter]->read_value() == 0) {
+			
+			exitCode = gpioCounter + 1;
+			isRunning = false;
 
+		} else {
+			
+			if (++gpioCounter == 4) {
+				gpioCounter = 0;
+			}	
 
-		// Process Input
-		int keycode;
-		double newTime;
-		double currentTime = mediaPlayer->Position();
-
-		for (InputDevicePtr dev : inputDevices)
-		{
-			while (dev->TryGetKeyPress(&keycode))
+			if (mediaPlayer->IsEndOfStream())
 			{
-
-				switch (keycode)
-				{
-				case KEY_HOME:	// odroid remote
-				case KEY_MUTE:
-				case KEY_MENU:
-
-				case KEY_VOLUMEDOWN:
-				case KEY_VOLUMEUP:
-					break;
-
-				case KEY_POWER:	// odroid remote
-				case KEY_BACK:
-				case KEY_ESC:
-				{
+				if (optionLoop) {
+					mediaPlayer->Seek(0);
+					mediaPlayer->SetState(MediaState::Play);
+				} else {
 					isRunning = false;
 				}
-					break;
-
-				case KEY_FASTFORWARD:
-					//TODO
-					break;
-
-				case KEY_REWIND:
-					//TODO
-					break;
-
-				case KEY_ENTER:	// odroid remote
-				case KEY_SPACE:
-				case KEY_PLAYPAUSE:
-				{
-					if (isPaused)
-					{
-						osd->Hide();
-						mediaPlayer->SetState(MediaState::Play);
-					}
-					else
-					{
-						mediaPlayer->SetState(MediaState::Pause);
-						osd->Show();
-					}
-					
-					isPaused = !isPaused;
-				}
-				break;
-
-				case KEY_LEFT:
-					// Backward
-					if (!isPaused)
-					{
-						newTime = currentTime - 30.0; 
-						goto seek;
-					}
-					break;
-
-				case KEY_RIGHT:
-					// Forward
-					if (!isPaused)
-					{
-						newTime = currentTime + 30.0; 		
-						goto seek;
-					}
-					break;
-
-				case KEY_UP:
-					if (!isPaused)
-					{
-						newTime = currentTime - 5.0 * 60; 
-						goto seek;
-					}
-					break;
-
-				case KEY_DOWN:
-					newTime = currentTime + 5.0 * 60; 
-
-seek:
-					if (!isPaused)
-					{			
-						printf("Seeking from %f to %f.\n", currentTime, newTime);
-
-						mediaPlayer->Seek(newTime);
-					}
-					break;
-
-				default:
-					break;
-				}
+			} else {
+				usleep(10000); // 10msec do not decrease
 			}
-		}
-
-		if (osd)
-		{
-			osd->SetDuration(mediaPlayer->Duration());
-
-			/*double currentTime = mediaPlayer->Position();*/
-			osd->SetCurrentTimeStamp(currentTime);
-
-			if (isFbdev)
-			{
-				// The mode setting in aml_libs causes the fb
-				// device to be reset making it display the
-				// the wrong buffer.  As a workaround, force
-				// updating the display.
-				//osd->SetShowProgress(!isPaused);
-			}
-
-			//osd->SetShowProgress(isPaused);
-
-			//osd->Draw();
-			//osd->SwapBuffers();
-		}
-
-		if (mediaPlayer->IsEndOfStream())
-		{
-			isRunning = false;
-		}
-		else
-		{
-			usleep(100);
 		}
 	}
 
+	// Release GPIO resources
+	for (int r = 0; r < 4; r++) { delete gpio[r]; }
 
-	printf("MAIN: Playback finished.\n");
-
-	return 0;
+	// Provide GPIO number to the caller script
+	return exitCode;
 }
