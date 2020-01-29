@@ -68,7 +68,7 @@ readonly GPIO3=4
 ### runloop
 while :
 do
-	sudo $C2PLAY --loop $VIDEO1 $SILENT		# plays video1 in a loop until GPIO is triggered
+	sudo $C2PLAY --loop --gpio $VIDEO1 $SILENT		# plays video1 in a loop until GPIO is triggered
 	gpio=$?
 	
 	case $gpio in

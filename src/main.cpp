@@ -74,6 +74,7 @@ struct option longopts[] = {
 	{ "subtitle",		required_argument,  NULL,          's' },
 	{ "avdict",			required_argument,  NULL,          'A' },
 	{ "loop",			no_argument,        NULL,          'l' },
+	{ "gpio",			no_argument,        NULL,          'g' },
 	{ 0, 0, 0, 0 }
 };
 
@@ -97,6 +98,7 @@ int main(int argc, char** argv)
 	int optionSubtitleIndex = -1;	//disabled by default
 	std::string avOptions;
 	bool optionLoop = false;
+	bool gpioTrigger = false;
 
 	while ((c = getopt_long(argc, argv, "t:c:", longopts, NULL)) != -1)
 	{
@@ -155,6 +157,11 @@ int main(int argc, char** argv)
 			case 'l':
 				optionLoop = true;
 				printf("optionLoop=true\n");
+				break;
+				
+			case 'g':
+				gpioTrigger = true;
+				printf("gpioTrigger=true\n");
 				break;
 		}
 	}
@@ -236,7 +243,7 @@ int main(int argc, char** argv)
 		isRunning = window->ProcessMessages();
 
 		// Handling GPIO inputs
-		if (gpio[gpioCounter]->read_value() == 0) {
+		if (gpioTrigger && gpio[gpioCounter]->read_value() == 0) {
 			
 			exitCode = gpioCounter + 1;
 			isRunning = false;

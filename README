@@ -22,6 +22,7 @@ Command line options:
 	--audio	n			Index of audio stream to play.
 	--subtitle n		Index of subtitle stream to play.
 	--loop				Loop continuously.
+	--gpio				GPIO 0..3 trigger finish playing and the gpio number is provided as exit code
 
 Note: video, audio, and subtitle are index values.  The first stream of a type
 is index 0 and increments for each stream of the same type present.  This is
