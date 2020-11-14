@@ -183,11 +183,25 @@ int main(int argc, char** argv)
 
 	// Initialize GPIO input(s)
 	unsigned int gpioCounter = 0;
-	GPIOC2 *gpio[4];
+	GPIOC2 *gpio[16];
+
 	gpio[0] = new GPIOC2(11, INPUT); //GPIO0 (pin11)
 	gpio[1] = new GPIOC2(12, INPUT); //GPIO1 (pin12)
 	gpio[2] = new GPIOC2(13, INPUT); //GPIO2 (pin13)
 	gpio[3] = new GPIOC2(15, INPUT); //GPIO3 (pin15)
+	gpio[4] = new GPIOC2(16, INPUT); //GPIO4 (pin16)
+	gpio[5] = new GPIOC2(18, INPUT); //GPIO5 (pin18)
+	gpio[6] = new GPIOC2(22, INPUT); //GPIO6 (pin22)
+	gpio[7] = new GPIOC2(24, INPUT); //GPIO7 (pin24)
+	
+	gpio[8] = new GPIOC2(26, INPUT); //GPIO8 (pin26)
+	gpio[9] = new GPIOC2(36, INPUT); //GPIO9 (pin36)
+	gpio[10] = new GPIOC2(21, INPUT); //GPIO10 (pin21)
+	gpio[11] = new GPIOC2(23, INPUT); //GPIO11 (pin23)
+	gpio[12] = new GPIOC2(29, INPUT); //GPIO12 (pin29)
+	gpio[13] = new GPIOC2(31, INPUT); //GPIO13 (pin31)
+	gpio[14] = new GPIOC2(32, INPUT); //GPIO14 (pin32)
+	gpio[15] = new GPIOC2(35, INPUT); //GPIO15 (pin35)
 
 	// Initialize libav
 	av_log_set_level(AV_LOG_VERBOSE);
@@ -250,7 +264,7 @@ int main(int argc, char** argv)
 
 		} else {
 			
-			if (++gpioCounter == 4) {
+			if (++gpioCounter == 16) {
 				gpioCounter = 0;
 			}	
 
@@ -269,7 +283,7 @@ int main(int argc, char** argv)
 	}
 
 	// Release GPIO resources
-	for (int r = 0; r < 4; r++) { delete gpio[r]; }
+	for (int r = 0; r < 15; r++) { delete gpio[r]; }
 
 	// Provide GPIO number to the caller script
 	return exitCode;

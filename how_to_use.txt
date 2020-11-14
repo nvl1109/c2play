@@ -1,5 +1,24 @@
 C2PLAY for Digital Video Signage
 
+GPIO pinout:
+	gpio[0] = new GPIOC2(11, INPUT); //GPIO0 (pin11)
+	gpio[1] = new GPIOC2(12, INPUT); //GPIO1 (pin12)
+	gpio[2] = new GPIOC2(13, INPUT); //GPIO2 (pin13)
+	gpio[3] = new GPIOC2(15, INPUT); //GPIO3 (pin15)
+	gpio[4] = new GPIOC2(16, INPUT); //GPIO4 (pin16)
+	gpio[5] = new GPIOC2(18, INPUT); //GPIO5 (pin18)
+	gpio[6] = new GPIOC2(22, INPUT); //GPIO6 (pin22)
+	gpio[7] = new GPIOC2(24, INPUT); //GPIO7 (pin24)
+	
+	gpio[8] = new GPIOC2(26, INPUT); //GPIO8 (pin26)
+	gpio[9] = new GPIOC2(36, INPUT); //GPIO9 (pin36)
+	gpio[10] = new GPIOC2(21, INPUT); //GPIO10 (pin21)
+	gpio[11] = new GPIOC2(23, INPUT); //GPIO11 (pin23)
+	gpio[12] = new GPIOC2(29, INPUT); //GPIO12 (pin29)
+	gpio[13] = new GPIOC2(31, INPUT); //GPIO13 (pin31)
+	gpio[14] = new GPIOC2(32, INPUT); //GPIO14 (pin32)
+	gpio[15] = new GPIOC2(35, INPUT); //GPIO15 (pin35)
+	
 Compared to a professional digital video signage solution here are the differences:
 - in loop play the seeking time (restarting the video) is aprox. 500msec
 - during the restarting process there is blank screen
@@ -15,7 +34,7 @@ Notes:
 - You could prepare the Odroid C2 environment as a professional looking Video Signage device with the following not detailed steps:
 	- Install Ubuntu 16.04 minimal image
 	- update and upgrade
-	- download and build c2play-x11 -j4 from here: https://github.com/belaszalontai/c2play/tree/xenial-signage
+	- download and build c2play-x11 -j4 from here: https://github.com/belaszalontai/c2play/tree/xenial-signage-gpio16
 	- install xorg (sudo apt install xorg)
 	- Other necessary todoes not detailed here:
 		- redirects boot logs from the terminal screen to the serial port (silent boot)
@@ -28,55 +47,103 @@ Notes:
 - start.sh contains only the following line: sudo startx -- -nocursor > /dev/ttyS0 2>&1
 - the .xinitrc must contain the video playing scheduler script. Exmples here:
 
-.xinitrc example #1
--------------------
-### playing videos cycle one after another
+.xinitrc example
+----------------
+
+### playing videos triggered by GPIO 0..15
 
 ### define video files
-readonly VIDEO1='/home/odroid/video/a.mkv'
-readonly VIDEO2='/home/odroid/video/b.mkv'
-readonly VIDEO3='/home/odroid/video/c.mkv'
+readonly VIDEOL='/home/user/video/loop.mp4'
+readonly VIDEO0='/home/user/video/gpio0.mp4'
+readonly VIDEO1='/home/user/video/gpio1.mp4'
+readonly VIDEO2='/home/user/video/gpio2.mp4'
+readonly VIDEO3='/home/user/video/gpio3.mp4'
+readonly VIDEO4='/home/user/video/gpio4.mp4'
+readonly VIDEO5='/home/user/video/gpio5.mp4'
+readonly VIDEO6='/home/user/video/gpio6.mp4'
+readonly VIDEO7='/home/user/video/gpio7.mp4'
+readonly VIDEO8='/home/user/video/gpio8.mp4'
+readonly VIDEO9='/home/user/video/gpio8.mp4'
+readonly VIDEO10='/home/user/video/gpio8.mp4'
+readonly VIDEO11='/home/user/video/gpio8.mp4'
+readonly VIDEO12='/home/user/video/gpio8.mp4'
+readonly VIDEO13='/home/user/video/gpio8.mp4'
+readonly VIDEO14='/home/user/video/gpio8.mp4'
+readonly VIDEO15='/home/user/video/gpio8.mp4'
 
-readonly C2PLAY=/home/odroid/c2play/c2play-x11
-readonly SILENT='> /dev/null 2>&1'
-
-### runloop
-while :
-do
-	sudo $C2PLAY $VIDEO1 $SILENT		# plays video1
-	sudo $C2PLAY $VIDEO2 $SILENT		# then plays video2
-	sudo $C2PLAY $VIDEO3 $SILENT		# then plays video3
-done									# restart the sequence
-
-
-.xinitrc example #2
--------------------
-### playing videos triggered by GPIO
-
-### define video files
-readonly VIDEO1='/home/odroid/video/a.mkv'
-readonly VIDEO2='/home/odroid/video/b.mkv'
-readonly VIDEO3='/home/odroid/video/c.mkv'
-
-readonly C2PLAY=/home/odroid/c2play/c2play-x11
 readonly SILENT='> /dev/null 2>&1'
 readonly GPIO0=1
 readonly GPIO1=2
 readonly GPIO2=3
 readonly GPIO3=4
+readonly GPIO4=5
+readonly GPIO5=6
+readonly GPIO6=7
+readonly GPIO7=8
+readonly GPIO8=9
+readonly GPIO9=10
+readonly GPIO10=11
+readonly GPIO11=12
+readonly GPIO12=13
+readonly GPIO13=14
+readonly GPIO14=15
+readonly GPIO15=16
+readonly C2PLAY=/home/user/c2play/c2play-x11
 
 ### runloop
 while :
 do
-	sudo $C2PLAY --loop --gpio $VIDEO1 $SILENT		# plays video1 in a loop until GPIO is triggered
+	sudo $C2PLAY --loop --gpio $VIDEOL $SILENT		# plays videol in a loop until GPIO is triggered
 	gpio=$?
 	
 	case $gpio in
 		$GPIO0)
-			sudo $C2PLAY $VIDEO2 $SILENT		# on GPIO0 plays video2 until end
+			sudo $C2PLAY $VIDEO0 $SILENT		# on GPIO0 plays video0 until end
 		;;
 		$GPIO1)
-			sudo $C2PLAY $VIDEO3 $SILENT		# on GPIO1 plays video3 until end
+			sudo $C2PLAY $VIDEO1 $SILENT		# on GPIO1 plays video1 until end
+		;;
+		$GPIO2)
+			sudo $C2PLAY $VIDEO2 $SILENT		# on GPIO2 plays video2 until end
+		;;
+		$GPIO3)
+			sudo $C2PLAY $VIDEO3 $SILENT		# on GPIO3 plays video3 until end
+		;;
+		$GPIO4)
+			sudo $C2PLAY $VIDEO4 $SILENT		# on GPIO4 plays video4 until end
+		;;
+		$GPIO5)
+			sudo $C2PLAY $VIDEO5 $SILENT		# on GPIO5 plays video5 until end
+		;;
+		$GPIO6)
+			sudo $C2PLAY $VIDEO6 $SILENT		# on GPIO6 plays video6 until end
+		;;
+		$GPIO7)
+			sudo $C2PLAY $VIDEO7 $SILENT		# on GPIO7 plays video7 until end
+		;;
+		$GPIO8)
+			sudo $C2PLAY $VIDEO8 $SILENT		# on GPIO8 plays video8 until end
+		;;
+		$GPIO9)
+			sudo $C2PLAY $VIDEO9 $SILENT		# on GPIO9 plays video9 until end
+		;;
+		$GPIO10)
+			sudo $C2PLAY $VIDEO10 $SILENT		# on GPIO10 plays video10 until end
+		;;
+		$GPIO11)
+			sudo $C2PLAY $VIDEO11 $SILENT		# on GPIO11 plays video11 until end
+		;;
+		$GPIO12)
+			sudo $C2PLAY $VIDEO12 $SILENT		# on GPIO12 plays video12 until end
+		;;
+		$GPIO13)
+			sudo $C2PLAY $VIDEO13 $SILENT		# on GPIO13 plays video13 until end
+		;;
+		$GPIO14)
+			sudo $C2PLAY $VIDEO14 $SILENT		# on GPIO14 plays video14 until end
+		;;
+		$GPIO15)
+			sudo $C2PLAY $VIDEO15 $SILENT		# on GPIO15 plays video15 until end
 		;;
 	esac
 done											# restart the sequence
