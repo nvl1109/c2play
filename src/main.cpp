@@ -338,7 +338,7 @@ int main(int argc, char** argv)
 	
 	// Initialize libav
 	av_log_set_level(AV_LOG_VERBOSE);
-	av_register_all();
+	// av_register_all(); // deprecated no need to substitute
 	avformat_network_init();
 
 
