@@ -122,7 +122,7 @@ int main(int argc, char** argv)
 					else
 					{
 						printf("invalid time specification.\n");
-						throw Exception();
+						throw Exception("main - invalid time specification");
 					}
 				}
 				else
@@ -184,49 +184,53 @@ int main(int argc, char** argv)
 	// Initialize GPIO input(s)
 	unsigned int gpioCounter = 0;
 	GPIOC2 *gpio[16];
-
-	gpio[0] = new GPIOC2(11, INPUT); //GPIO0 (pin11)
-	gpio[1] = new GPIOC2(12, INPUT); //GPIO1 (pin12)
-	gpio[2] = new GPIOC2(13, INPUT); //GPIO2 (pin13)
-	gpio[3] = new GPIOC2(15, INPUT); //GPIO3 (pin15)
-	gpio[4] = new GPIOC2(16, INPUT); //GPIO4 (pin16)
-	gpio[5] = new GPIOC2(18, INPUT); //GPIO5 (pin18)
-	gpio[6] = new GPIOC2(22, INPUT); //GPIO6 (pin22)
-	gpio[7] = new GPIOC2(24, INPUT); //GPIO7 (pin24)
-	
-	gpio[8] = new GPIOC2(26, INPUT); //GPIO8 (pin26)
-	gpio[9] = new GPIOC2(36, INPUT); //GPIO9 (pin36)
-	gpio[10] = new GPIOC2(21, INPUT); //GPIO10 (pin21)
-	gpio[11] = new GPIOC2(23, INPUT); //GPIO11 (pin23)
-	gpio[12] = new GPIOC2(29, INPUT); //GPIO12 (pin29)
-	gpio[13] = new GPIOC2(31, INPUT); //GPIO13 (pin31)
-	gpio[14] = new GPIOC2(32, INPUT); //GPIO14 (pin32)
-	gpio[15] = new GPIOC2(35, INPUT); //GPIO15 (pin35)
+	if (gpioTrigger) {
+		gpio[0] = new GPIOC2(11, INPUT); //GPIO0 (pin11)
+		gpio[1] = new GPIOC2(12, INPUT); //GPIO1 (pin12)
+		gpio[2] = new GPIOC2(13, INPUT); //GPIO2 (pin13)
+		gpio[3] = new GPIOC2(15, INPUT); //GPIO3 (pin15)
+		gpio[4] = new GPIOC2(16, INPUT); //GPIO4 (pin16)
+		gpio[5] = new GPIOC2(18, INPUT); //GPIO5 (pin18)
+		gpio[6] = new GPIOC2(22, INPUT); //GPIO6 (pin22)
+		gpio[7] = new GPIOC2(24, INPUT); //GPIO7 (pin24)
+		
+		gpio[8] = new GPIOC2(26, INPUT); //GPIO8 (pin26)
+		gpio[9] = new GPIOC2(36, INPUT); //GPIO9 (pin36)
+		gpio[10] = new GPIOC2(21, INPUT); //GPIO10 (pin21)
+		gpio[11] = new GPIOC2(23, INPUT); //GPIO11 (pin23)
+		gpio[12] = new GPIOC2(29, INPUT); //GPIO12 (pin29)
+		gpio[13] = new GPIOC2(31, INPUT); //GPIO13 (pin31)
+		gpio[14] = new GPIOC2(32, INPUT); //GPIO14 (pin32)
+		gpio[15] = new GPIOC2(35, INPUT); //GPIO15 (pin35)
+	}
 
 	// Initialize libav
+	printf("Initialize libav");
 	av_log_set_level(AV_LOG_VERBOSE);
-	av_register_all();
+	//av_register_all();
 	avformat_network_init();
 
 	WindowSPTR window;
 
 #ifdef X11
-
+	printf("X11AmlWindow is started to instantiate");
 	window = std::make_shared<X11AmlWindow>();
 
 #else
-
+	printf("FbdevAmlWindow is started to instantiate");
 	window = std::make_shared<FbdevAmlWindow>();
 
 #endif
 	 
 	window->ProcessMessages();
+	
+	printf("renderContext is started to instantiate");
 
 	RenderContextSPTR renderContext = std::make_shared<RenderContext>(window->EglDisplay(),
 		window->Surface(),
 		window->Context());
 
-	CompositorSPTR compositor = std::make_shared<Compositor>(renderContext, 1920, 1080);
+	CompositorSPTR compositor = std::make_shared<Compositor>(renderContext, 1680, 1050);
 
 	MediaPlayerSPTR mediaPlayer = std::make_shared<MediaPlayer>(url,
 		avOptions,
@@ -264,7 +268,7 @@ int main(int argc, char** argv)
 
 		} else {
 			
-			if (++gpioCounter == 16) {
+			if (++gpioCounter == 8) {
 				gpioCounter = 0;
 			}	
 
@@ -283,7 +287,9 @@ int main(int argc, char** argv)
 	}
 
 	// Release GPIO resources
-	for (int r = 0; r < 15; r++) { delete gpio[r]; }
+	if (gpioTrigger) {
+		for (int r = 0; r < 15; r++) { delete gpio[r]; }
+	}
 
 	// Provide GPIO number to the caller script
 	return exitCode;

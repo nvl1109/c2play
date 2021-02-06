@@ -18,7 +18,7 @@
 
 #include <sys/mman.h>	//mmap
 #include <linux/kd.h>
-
+#include <exception>
 #include "AmlWindow.h"
 
 
@@ -182,7 +182,8 @@ public:
 		{
 			int ret = ioctl(ttyfd, KDSETMODE, KD_TEXT);
 			if (ret < 0)
-				throw Exception("KDSETMODE failed.");
+				printf("KDSETMODE failed.\n");
+				std::terminate();
 
 			close(ttyfd);
 		}
@@ -194,5 +195,6 @@ public:
 
 	virtual bool ProcessMessages() override
 	{
+		return false;
 	}
 };
