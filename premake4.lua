@@ -14,6 +14,7 @@ project "c2play"
    buildoptions { "-std=c++11" }
    linkoptions { "-lavformat -lavcodec -lavutil -lpthread -lasound -lrt -lEGL -lGLESv2 -lass" }
 
+   defines { "MESA_EGL_NO_X11_HEADERS" }
    configuration "Debug"
       flags { "Symbols" }
       defines { "DEBUG" }
